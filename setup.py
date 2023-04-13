@@ -1,9 +1,15 @@
 from setuptools import setup
 
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     name='sapcloudconnectorpythonsocket',
-    version='0.0.1',    
+    version='0.1.2',    
     description='Python Package to open socket to SAP Cloud Connector via Connectivity Proxy',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/fyx99/sap-cloud-connector-python-socket',
     author='fxy99',
     author_email='',

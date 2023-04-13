@@ -2,6 +2,7 @@
 import functools
 import socket
 import struct
+import base64
 import logging
 
 logger = logging.getLogger('sapcloudconnectorpythonsocket')
@@ -91,7 +92,8 @@ class CloudConnectorSocket(socket.socket):
             # Check if 80 method is confirmed
 
             if chosen_auth[1:2] == b"\x80":
-                location_id_part = (len(location_id.encode()).to_bytes(4, byteorder="big") + location_id.encode()) if location_id else b"\x00"
+                encoded_location_id = base64.b64encode(location_id.encode())
+                location_id_part = (len(encoded_location_id).to_bytes(1, byteorder="big") + encoded_location_id) if location_id else b"\x00"
                 auth_message = b"\x01" + len(token.encode()).to_bytes(4, byteorder="big") + token.encode() + location_id_part
                 logger.info(auth_message)
                 writer.write(auth_message)
@@ -215,5 +217,6 @@ class CloudConnectorSocket(socket.socket):
         port = struct.unpack(">H", self.readAll(file, 2))[0]
         logger.info((addr, port))
         return addr, port
+        
         
         
