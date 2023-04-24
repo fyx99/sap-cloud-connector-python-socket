@@ -1,4 +1,6 @@
-"""main module"""
+"""
+CloudConnectorSocket instance of Pythons socket class overriding the connect function to open a socket via SAP Cloud Connector.
+"""
 import functools
 import socket
 import struct
@@ -9,10 +11,9 @@ logger = logging.getLogger('sapcloudconnectorpythonsocket')
 logger.addHandler(logging.NullHandler())
 
 
-
-
-def format_status_byte(byte):
-    codes = {
+def format_status_byte(status_byte) -> str:
+    """helper function to log the CC specific error bytes"""
+    status_byte_messages = {
         b"\x00": "SUCCESS: Success",
         b"\x01": "FAILURE: Connection closed by backend or general scenario failure.",
         b"\x02": "FORBIDDEN: Connection not allowed by ruleset. No matching host mapping found in Cloud Connector access control settings, see Configure Access Control (TCP).",
@@ -23,9 +24,10 @@ def format_status_byte(byte):
         b"\x07": "COMMAND_UNSUPPORTED: Only the SOCKS5 CONNECT command is supported.",
         b"\x08": "ADDRESS_UNSUPPORTED: Only the SOCKS5 DOMAIN and IPv4 commands are supported."
     }
-    return codes[byte] if byte in codes else "Other Unexpected Error byte"
+    return status_byte_messages[status_byte] if status_byte in status_byte_messages else "Other Unexpected Error byte"
 
 def set_self_blocking(function):
+    """helper to use blocking on socket object"""
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
         self = args[0]
@@ -42,31 +44,41 @@ def set_self_blocking(function):
     return wrapper
 
 
-# Cloud Connector socket based on SOCKS 5
+
 class CloudConnectorSocket(socket.socket):
+    """Cloud Connector socket based on SOCKS5 standard"""
 
     def __init__(self, family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, *args, **kwargs):
-        # some default params for the socket class
+        """set default params for TCP socket"""
         super(CloudConnectorSocket, self).__init__(family, type, proto, *args, **kwargs)
     
     timeout = 30 # default
 
     @set_self_blocking
-    def connect(self, dest_host, dest_port, proxy_host, proxy_port, token, location_id=None, catch_errors=None):
+    def connect(self, dest_host: str, dest_port: int, proxy_host: str, proxy_port: int, token: str, location_id: str=None):
+        """
+        Connect to the destination host via the proxy host
 
+        :param dest_host: The host of the destination
+        :param dest_port: The (int) port of the destination
+        :param proxy_host: The host of the proxy
+        :param proxy_port: The port of the proxy
+        :param token: The token from the connectivity-service instance
+        :param location_id: (Optional) specify the Cloud Connector location_id to connect to (if set in cloud connector config else leave empty)
+        """
         super(CloudConnectorSocket, self).settimeout(self.timeout)
         
         try:
             # Initial connection to proxy server
             super(CloudConnectorSocket, self).connect((proxy_host, proxy_port))
-           
         except Exception as e:
             self.close()
             raise Exception(f"EXCEPTION AT INITIAL CONNECT: {e}")
             
         
-        # Connected to proxy server, now negotiate
+        
         try:                
+            # Connected to proxy server, now negotiate authentication
             self.negotiate_auth(dest_host, dest_port, token, location_id)
         except Exception as e:
             self.close()
@@ -74,7 +86,7 @@ class CloudConnectorSocket(socket.socket):
 
                 
     def negotiate_auth(self, dest_host, dest_port, token, location_id):
-        
+        """SAP Cloud Connector specific authentication scheme"""
         self.settimeout(None)   # apparently needed for make file to set to blocking https://stackoverflow.com/questions/3432102/python-socket-connection-timeout
         writer = self.makefile("wb")
         reader = self.makefile("rb", 0)  # buffering=0 renamed in Python 3
