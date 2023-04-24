@@ -76,7 +76,6 @@ class CloudConnectorSocket(socket.socket):
             raise Exception(f"EXCEPTION AT INITIAL CONNECT: {e}")
             
         
-        
         try:                
             # Connected to proxy server, now negotiate authentication
             self.negotiate_auth(dest_host, dest_port, token, location_id)
@@ -104,8 +103,10 @@ class CloudConnectorSocket(socket.socket):
             # Check if 80 method is confirmed
 
             if chosen_auth[1:2] == b"\x80":
-                encoded_location_id = base64.b64encode(location_id.encode())
-                location_id_part = (len(encoded_location_id).to_bytes(1, byteorder="big") + encoded_location_id) if location_id else b"\x00"
+                location_id_part = b"\x00"
+                if location_id:
+                    encoded_location_id = base64.b64encode(location_id.encode())
+                    location_id_part = len(encoded_location_id).to_bytes(1, byteorder="big") + encoded_location_id
                 auth_message = b"\x01" + len(token.encode()).to_bytes(4, byteorder="big") + token.encode() + location_id_part
                 logger.info(auth_message)
                 writer.write(auth_message)
@@ -116,14 +117,13 @@ class CloudConnectorSocket(socket.socket):
            
                 
                 if auth_status[0:1] != b"\x01":
-                    raise Exception("SOCKS5 PROXY SERVER SENT UNEXPECTED DATA FOR AUTH")
+                    raise Exception("CLOUD CONNECTOR SENT UNEXPECTED DATA FOR AUTH")
                 if auth_status[1:2] != b"\x00":
                     # Authentication failed
                     raise Exception("SOCKS5 AUTH FAILED " + format_status_byte(auth_status[1:2]))
             
             else:
-                raise Exception("SOCKS5 PROXY SERVER SENT UNEXPECTED CHOSEN AUTH TYPE NOT x80")    
-                
+                raise Exception("CLOUD CONNECTOR SENT UNEXPECTED CHOSEN AUTH TYPE NOT x80")    
                 
             # authentication succeeded and can request actual connection
             # x05 start of message x01 command x00 standard end of command
