@@ -6,7 +6,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='sapcloudconnectorpythonsocket',
-    version='0.1.3',    
+    version='0.1.4',    
     description='Python Package to open socket to SAP Cloud Connector via Connectivity Proxy',
     long_description=long_description,
     long_description_content_type='text/markdown',

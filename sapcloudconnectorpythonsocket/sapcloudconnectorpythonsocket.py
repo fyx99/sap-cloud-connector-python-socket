@@ -7,7 +7,7 @@ import struct
 import base64
 import logging
 
-logger = logging.getLogger('sapcloudconnectorpythonsocket')
+logger = logging.getLogger("sapcloudconnectorpythonsocket")
 logger.addHandler(logging.NullHandler())
 
 
@@ -75,6 +75,7 @@ class CloudConnectorSocket(socket.socket):
             self.close()
             raise Exception(f"EXCEPTION AT INITIAL CONNECT: {e}")
             
+        logger.info("Initial Proxy Connect succeeded")
         
         try:                
             # Connected to proxy server, now negotiate authentication
@@ -82,6 +83,9 @@ class CloudConnectorSocket(socket.socket):
         except Exception as e:
             self.close()
             raise Exception(f"EXCEPTION NEGOTIATIONG {e}")
+        
+        logger.info("Cloud Connector Socket Ready")
+
 
                 
     def negotiate_auth(self, dest_host, dest_port, token, location_id):
